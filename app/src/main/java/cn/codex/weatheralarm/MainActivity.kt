@@ -49,7 +49,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -166,6 +168,7 @@ private fun WeatherAlarmScreen(
             WeekdaySelector(state, onDay)
             LocationCard(state)
             DecisionCard(state, onRefreshWeather)
+            CreatorSignature()
         }
     }
 }
@@ -428,6 +431,20 @@ private fun DecisionCard(state: MainUiState, onRefreshWeather: () -> Unit) {
             }
         }
     }
+}
+
+@Composable
+private fun CreatorSignature() {
+    Text(
+        text = stringResource(R.string.creator_signature),
+        color = Color(0xFF9AA6A8),
+        fontSize = 11.sp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 2.dp, bottom = 4.dp),
+        textAlign = TextAlign.Center,
+        maxLines = 1
+    )
 }
 
 @Composable
