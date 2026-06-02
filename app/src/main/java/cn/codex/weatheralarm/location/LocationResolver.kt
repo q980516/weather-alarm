@@ -14,6 +14,7 @@ import androidx.core.content.ContextCompat
 import cn.codex.weatheralarm.domain.AlarmProfile
 import cn.codex.weatheralarm.domain.LocationQuery
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
 
 class LocationResolver(private val context: Context) {
@@ -65,7 +66,9 @@ class LocationResolver(private val context: Context) {
         val providers = listOf(LocationManager.NETWORK_PROVIDER, LocationManager.GPS_PROVIDER)
             .filter { locationManager.isProviderEnabled(it) }
         for (provider in providers) {
-            val current = requestSingleLocation(provider)
+            val current = withTimeoutOrNull(LOCATION_REQUEST_TIMEOUT_MS) {
+                requestSingleLocation(provider)
+            }
             if (current != null) return current
         }
         return bestLastKnown
@@ -114,6 +117,7 @@ class LocationResolver(private val context: Context) {
 
     companion object {
         private const val FRESH_LOCATION_MS = 30 * 60 * 1000L
+        private const val LOCATION_REQUEST_TIMEOUT_MS = 5000L
     }
 }
 

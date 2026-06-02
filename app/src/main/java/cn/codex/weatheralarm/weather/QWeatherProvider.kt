@@ -9,6 +9,7 @@ import org.json.JSONObject
 import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URLEncoder
 import java.time.OffsetDateTime
 import java.util.Locale
 import java.util.zip.GZIPInputStream
@@ -22,10 +23,10 @@ class QWeatherProvider(
         from: java.time.LocalDateTime,
         to: java.time.LocalDateTime
     ): WeatherForecast = withContext(Dispatchers.IO) {
-        require(apiKey.isNotBlank()) { "未配置 QWEATHER_API_KEY" }
-        require(apiHost.isNotBlank()) { "未配置 QWEATHER_API_HOST，请在和风天气控制台设置页复制 API Host" }
+        require(apiKey.isNotBlank()) { "Missing QWEATHER_API_KEY" }
+        require(apiHost.isNotBlank()) { "Missing QWEATHER_API_HOST" }
 
-        val locationParam = String.format(Locale.US, "%.2f,%.2f", location.longitude, location.latitude)
+        val locationParam = location.toQWeatherLocation()
         val url = URL("https://$apiHost/v7/weather/24h?location=$locationParam&lang=zh")
         val connection = (url.openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
@@ -35,24 +36,28 @@ class QWeatherProvider(
             readTimeout = 8000
         }
 
+        val responseCode = connection.responseCode
         val body = try {
-            val stream = if (connection.responseCode in 200..299) {
+            val stream = if (responseCode in 200..299) {
                 connection.inputStream
             } else {
-                connection.errorStream
+                connection.errorStream ?: connection.inputStream
             }
             stream.decode(connection.contentEncoding).bufferedReader(Charsets.UTF_8).use { it.readText() }
         } finally {
             connection.disconnect()
         }
 
-        val json = JSONObject(body)
+        val json = runCatching { JSONObject(body) }.getOrElse {
+            error("QWeather HTTP $responseCode: ${body.take(120)}")
+        }
         val code = json.optString("code")
         if (code != "200") {
             val error = json.optJSONObject("error")
             val detail = error?.optString("detail").orEmpty()
             val title = error?.optString("title").orEmpty()
-            error("QWeather 返回异常：$code ${title.ifBlank { detail }}".trim())
+            val message = title.ifBlank { detail }.ifBlank { body.take(120) }
+            error("QWeather HTTP $responseCode code=$code: $message")
         }
 
         val hourly = json.getJSONArray("hourly")
@@ -74,6 +79,19 @@ class QWeatherProvider(
             }
         }
         WeatherForecast(source = "QWeather", hourly = items)
+    }
+
+    private fun LocationQuery.toQWeatherLocation(): String {
+        val hasValidCoordinates = latitude in -90.0..90.0 &&
+            longitude in -180.0..180.0 &&
+            !(latitude == 0.0 && longitude == 0.0)
+        if (hasValidCoordinates) {
+            return String.format(Locale.US, "%.2f,%.2f", longitude, latitude)
+        }
+        if (cityId.isNotBlank()) {
+            return URLEncoder.encode(cityId, Charsets.UTF_8.name())
+        }
+        error("No usable location: invalid coordinates and missing LocationID")
     }
 
     private fun InputStream.decode(contentEncoding: String?): InputStream =
