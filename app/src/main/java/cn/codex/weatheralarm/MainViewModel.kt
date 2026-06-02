@@ -7,10 +7,11 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.workDataOf
-import cn.codex.weatheralarm.alarm.AlarmScheduler
 import cn.codex.weatheralarm.alarm.AlarmGuardService
+import cn.codex.weatheralarm.alarm.AlarmScheduler
 import cn.codex.weatheralarm.alarm.AlarmTimes
 import cn.codex.weatheralarm.alarm.WeatherCheckReceiver
 import cn.codex.weatheralarm.alarm.WeatherCheckWorker
@@ -24,7 +25,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 import java.time.LocalTime
 
@@ -122,13 +126,31 @@ class MainViewModel(
             val request = OneTimeWorkRequestBuilder<WeatherCheckWorker>()
                 .setInputData(workDataOf(WeatherCheckReceiver.EXTRA_PROFILE_ID to profile.id))
                 .build()
-            WorkManager.getInstance(container.appContext).enqueueUniqueWork(
+            val workManager = WorkManager.getInstance(container.appContext)
+            workManager.enqueueUniqueWork(
                 "weather-check-now-${profile.id}",
                 ExistingWorkPolicy.REPLACE,
                 request
             )
-            refreshStatus.value = "已开始更新，稍后查看今日状态"
+            val finalInfo = waitForWorkToFinish(workManager, request.id)
+            refreshStatus.value = when (finalInfo?.state) {
+                WorkInfo.State.SUCCEEDED -> "更新完成，请查看今日状态"
+                WorkInfo.State.FAILED -> "更新失败，已使用兜底闹钟"
+                WorkInfo.State.CANCELLED -> "更新已取消，请再试一次"
+                null -> "更新超时，请检查定位、网络或稍后重试"
+                else -> "更新完成，请查看今日状态"
+            }
         }
+    }
+
+    private suspend fun waitForWorkToFinish(workManager: WorkManager, id: java.util.UUID): WorkInfo? {
+        val deadlineAt = System.currentTimeMillis() + 35_000
+        while (System.currentTimeMillis() < deadlineAt) {
+            val info = withContext(Dispatchers.IO) { workManager.getWorkInfoById(id).get() }
+            if (info != null && info.state.isFinished) return info
+            delay(500)
+        }
+        return null
     }
 
     fun scheduleTestAlarm() {
