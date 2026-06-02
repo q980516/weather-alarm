@@ -1,5 +1,7 @@
 # WeatherAlarm / 雨晴闹钟
 
+Crafted with care by LinRui.
+
 雨晴闹钟是一个 Android 原生天气闹钟 MVP。用户设置雨天时间、非雨天时间和最终死线时间，App 会在起床前检查当前位置天气，并根据天气选择当天实际闹钟。
 
 ## Features

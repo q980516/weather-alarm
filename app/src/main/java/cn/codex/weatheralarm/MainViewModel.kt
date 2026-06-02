@@ -79,11 +79,16 @@ class MainViewModel(
         viewModelScope.launch {
             repository.ensureDefaultProfile()
             val profile = repository.getProfile()
-            scheduler.scheduleWeatherCheck(profile)
-            val fallbackAt = scheduler.scheduleFallbackAlarm(profile)
-            val deadlineAt = scheduler.scheduleDeadlineAlarm(profile)
-            scheduler.scheduleAwakeChecks(profile, fallbackAt, deadlineAt)
-            if (profile.enabled) AlarmGuardService.start(container.appContext)
+            if (profile.enabled) {
+                scheduler.scheduleWeatherCheck(profile)
+                val fallbackAt = scheduler.scheduleFallbackAlarm(profile)
+                val deadlineAt = scheduler.scheduleDeadlineAlarm(profile)
+                scheduler.scheduleAwakeChecks(profile, fallbackAt, deadlineAt)
+                AlarmGuardService.start(container.appContext)
+            } else {
+                scheduler.cancelAll(profile.id)
+                AlarmGuardService.stop(container.appContext)
+            }
         }
     }
 
@@ -145,7 +150,7 @@ class MainViewModel(
                 scheduler.scheduleAwakeChecks(updated, fallbackAt, deadlineAt)
                 AlarmGuardService.start(container.appContext)
             } else {
-                scheduler.cancelAll()
+                scheduler.cancelAll(updated.id)
                 AlarmGuardService.stop(container.appContext)
             }
         }

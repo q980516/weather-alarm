@@ -120,12 +120,12 @@ class AlarmScheduler(private val context: Context) {
         scheduleExact(AlarmTimes.toEpochMillis(alarmAt), pendingIntent, asAlarmClock = true)
     }
 
-    fun cancelAll() {
+    fun cancelAll(profileId: Long = AlarmProfile.DEFAULT_ID) {
         alarmManager.cancel(
             PendingIntent.getBroadcast(
                 context,
                 WEATHER_CHECK_REQUEST_CODE,
-                WeatherCheckReceiver.intent(context, AlarmProfile.DEFAULT_ID),
+                WeatherCheckReceiver.intent(context, profileId),
                 pendingIntentFlags()
             )
         )
@@ -133,7 +133,7 @@ class AlarmScheduler(private val context: Context) {
             PendingIntent.getBroadcast(
                 context,
                 ACTUAL_ALARM_REQUEST_CODE,
-                AlarmFireReceiver.intent(context, AlarmProfile.DEFAULT_ID, AlarmFireReceiver.MODE_NORMAL),
+                AlarmFireReceiver.intent(context, profileId, AlarmFireReceiver.MODE_NORMAL),
                 pendingIntentFlags()
             )
         )
@@ -141,10 +141,12 @@ class AlarmScheduler(private val context: Context) {
             PendingIntent.getBroadcast(
                 context,
                 DEADLINE_ALARM_REQUEST_CODE,
-                AlarmFireReceiver.intent(context, AlarmProfile.DEFAULT_ID, AlarmFireReceiver.MODE_DEADLINE),
+                AlarmFireReceiver.intent(context, profileId, AlarmFireReceiver.MODE_DEADLINE),
                 pendingIntentFlags()
             )
         )
+        cancelAwakeChecks(profileId)
+        AlarmNotification.clearAwakeChecks(context)
     }
 
     private fun scheduleExact(triggerAtMillis: Long, pendingIntent: PendingIntent, asAlarmClock: Boolean) {

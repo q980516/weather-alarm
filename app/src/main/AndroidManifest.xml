@@ -27,6 +27,10 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.WeatherAlarm">
 
+        <meta-data
+            android:name="cn.codex.weatheralarm.CREATOR"
+            android:value="@string/creator_signature" />
+
         <activity
             android:name=".alarm.AlarmRingingActivity"
             android:excludeFromRecents="true"
