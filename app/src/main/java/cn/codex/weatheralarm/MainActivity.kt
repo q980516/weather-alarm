@@ -252,7 +252,7 @@ private fun StatusCard(
             state.testAlarmStatus?.let { Text(it, color = Color(0xFF3F7D5A), fontSize = 13.sp) }
             if (!state.qWeatherConfigured) {
                 Text(
-                    "尚未配置 QWeather Key 或 API Host，会使用较早时间兜底。",
+                    "尚未配置 QWeather Key 或 API Host，会使用较晚时间兜底。",
                     color = Color(0xFFB36B00),
                     fontSize = 13.sp
                 )

@@ -115,7 +115,7 @@ object AlarmNotification {
     }
 
     fun showFallback(context: Context, detail: String) {
-        val message = if (detail.isBlank()) "已使用较早时间，避免漏闹" else "已使用较早时间：$detail"
+        val message = if (detail.isBlank()) "已使用较晚时间兜底" else "已使用较晚时间兜底：$detail"
         showWeatherMessage(context, "天气未更新", message)
     }
 

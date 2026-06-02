@@ -26,7 +26,7 @@ class AlarmTimesTest {
     }
 
     @Test
-    fun fallbackUsesEarlierOfRainAndNormalTimes() {
+    fun fallbackUsesLaterOfRainAndNormalTimes() {
         val monday = LocalDate.of(2026, 6, 1)
         val profile = AlarmProfile(
             rainTime = LocalTime.of(7, 30),
@@ -39,7 +39,7 @@ class AlarmTimesTest {
             now = LocalDateTime.of(monday, LocalTime.of(1, 0))
         )
 
-        assertEquals(LocalDateTime.of(monday, LocalTime.of(7, 0)), fallbackAt)
+        assertEquals(LocalDateTime.of(monday, LocalTime.of(7, 30)), fallbackAt)
     }
 
     @Test

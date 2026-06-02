@@ -27,7 +27,7 @@ object AlarmTimes {
     }
 
     fun fallbackAlarmAt(profile: AlarmProfile, now: LocalDateTime = LocalDateTime.now()): LocalDateTime =
-        nextEnabledDateTime(profile, minOf(profile.rainTime, profile.normalTime), now)
+        nextEnabledDateTime(profile, maxOf(profile.rainTime, profile.normalTime), now)
 
     fun nextDeadlineAlarmAt(profile: AlarmProfile, now: LocalDateTime = LocalDateTime.now()): LocalDateTime =
         nextEnabledDateTime(profile, profile.deadlineTime, now)
