@@ -15,6 +15,9 @@ class AlarmRepository(
     fun observeLatestDecision(profileId: Long = AlarmProfile.DEFAULT_ID): Flow<WeatherDecision?> =
         weatherDecisionDao.observeLatest(profileId).map { it?.toDomain() }
 
+    suspend fun getLatestDecision(profileId: Long = AlarmProfile.DEFAULT_ID): WeatherDecision? =
+        weatherDecisionDao.getLatest(profileId)?.toDomain()
+
     suspend fun ensureDefaultProfile() {
         if (alarmDao.getProfile(AlarmProfile.DEFAULT_ID) == null) {
             alarmDao.saveProfile(AlarmProfile().toEntity())

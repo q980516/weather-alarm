@@ -230,7 +230,7 @@ private fun StatusCard(
                 Text("总开关", modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
                 Switch(checked = state.profile.enabled, onCheckedChange = onEnabled)
             }
-            InfoLine("天气检查", state.nextWeatherCheckAt.formatUi())
+            InfoLine("下次自动检查", state.nextWeatherCheckAt.formatUi())
             InfoLine("兜底闹钟", state.fallbackAlarmAt.formatUi())
             InfoLine("精确闹钟", if (state.canScheduleExactAlarms) "已开启" else "未开启")
             InfoLine("定位权限", if (state.hasLocationPermission) "已开启" else "未开启")
@@ -427,7 +427,7 @@ private fun DecisionCard(state: MainUiState, onRefreshWeather: () -> Unit) {
                 Text(status)
                 InfoLine("来源", decision.source)
                 InfoLine("置信度", "${(decision.confidence * 100).toInt()}%")
-                InfoLine("检查时间", decision.checkedAt.formatUi())
+                InfoLine("检查时间", decision.checkedAt.formatUiWithSeconds())
             }
         }
     }
@@ -457,6 +457,9 @@ private fun InfoLine(label: String, value: String) {
 
 private fun LocalDateTime.formatUi(): String =
     format(DateTimeFormatter.ofPattern("MM-dd HH:mm"))
+
+private fun LocalDateTime.formatUiWithSeconds(): String =
+    format(DateTimeFormatter.ofPattern("MM-dd HH:mm:ss"))
 
 private fun Double.formatCoord(): String =
     String.format(Locale.US, "%.4f", this)

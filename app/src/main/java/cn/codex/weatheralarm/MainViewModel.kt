@@ -19,14 +19,14 @@ import cn.codex.weatheralarm.data.AlarmRepository
 import cn.codex.weatheralarm.domain.AlarmProfile
 import cn.codex.weatheralarm.domain.WeatherDecision
 import cn.codex.weatheralarm.location.LocationResolver
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
@@ -122,6 +122,12 @@ class MainViewModel(
     fun refreshWeatherNow() {
         viewModelScope.launch {
             val profile = repository.getProfile()
+            if (!profile.enabled) {
+                refreshStatus.value = "总开关已关闭，不执行天气更新"
+                return@launch
+            }
+
+            val previousDecisionAt = repository.getLatestDecision(profile.id)?.checkedAt
             refreshStatus.value = "正在更新天气..."
             val request = OneTimeWorkRequestBuilder<WeatherCheckWorker>()
                 .setInputData(workDataOf(WeatherCheckReceiver.EXTRA_PROFILE_ID to profile.id))
@@ -132,9 +138,17 @@ class MainViewModel(
                 ExistingWorkPolicy.REPLACE,
                 request
             )
+
             val finalInfo = waitForWorkToFinish(workManager, request.id)
             refreshStatus.value = when (finalInfo?.state) {
-                WorkInfo.State.SUCCEEDED -> "更新完成，请查看今日状态"
+                WorkInfo.State.SUCCEEDED -> {
+                    val newDecision = waitForNewDecision(profile.id, previousDecisionAt)
+                    if (newDecision != null) {
+                        "更新完成，检查时间已刷新"
+                    } else {
+                        "更新完成，但检查记录未刷新，请查看权限或稍后重试"
+                    }
+                }
                 WorkInfo.State.FAILED -> "更新失败，已使用兜底闹钟"
                 WorkInfo.State.CANCELLED -> "更新已取消，请再试一次"
                 null -> "更新超时，请检查定位、网络或稍后重试"
@@ -149,6 +163,18 @@ class MainViewModel(
             val info = withContext(Dispatchers.IO) { workManager.getWorkInfoById(id).get() }
             if (info != null && info.state.isFinished) return info
             delay(500)
+        }
+        return null
+    }
+
+    private suspend fun waitForNewDecision(profileId: Long, previousDecisionAt: LocalDateTime?): WeatherDecision? {
+        val deadlineAt = System.currentTimeMillis() + 3_000
+        while (System.currentTimeMillis() < deadlineAt) {
+            val decision = repository.getLatestDecision(profileId)
+            if (decision != null && (previousDecisionAt == null || decision.checkedAt.isAfter(previousDecisionAt))) {
+                return decision
+            }
+            delay(250)
         }
         return null
     }

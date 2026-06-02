@@ -11,6 +11,9 @@ interface WeatherDecisionDao {
     @Query("SELECT * FROM weather_decisions WHERE profileId = :profileId ORDER BY checkedAt DESC LIMIT 1")
     fun observeLatest(profileId: Long): Flow<WeatherDecisionEntity?>
 
+    @Query("SELECT * FROM weather_decisions WHERE profileId = :profileId ORDER BY checkedAt DESC LIMIT 1")
+    suspend fun getLatest(profileId: Long): WeatherDecisionEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun save(decision: WeatherDecisionEntity)
 }
